@@ -2,14 +2,13 @@ import React from "react";
 import { Link, Routes, Route, useNavigate } from "react-router-dom";
 import { apiFetch } from "./api";
 import Login from "./pages/Login";
+import Register from "./pages/Register";
+
 
 function Home() {
   return <div>Home (Slots page next)</div>;
 }
 
-function RegisterPlaceholder() {
-  return <div>Register page next</div>;
-}
 
 export default function App() {
   const [me, setMe] = React.useState(null);
@@ -56,7 +55,7 @@ export default function App() {
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/login" element={<Login onAuthChange={loadMe} />} />
-        <Route path="/register" element={<RegisterPlaceholder />} />
+        <Route path="/register" element={<Register />} />
       </Routes>
     </div>
   );
