@@ -8,6 +8,7 @@ import Register from "./pages/Register";
 import Slots from "./pages/Slots";
 import MyBookings from "./pages/MyBookings";
 import Admin from "./pages/Admin";
+import RequireAuth from "./components/RequireAuth";
 
 
 
@@ -88,12 +89,26 @@ export default function App() {
           <Route path="/" element={<Home me={me} />} />
 
           {/* Main pages */}
-          <Route path="/slots" element={<Slots />} />
+          <Route
+            path="/slots"
+            element={(
+              <RequireAuth me={me}>
+                <Slots />
+              </RequireAuth>
+            )}
+          />
           <Route path="/login" element={<Login onAuthChange={loadMe} />} />
           <Route path="/register" element={<Register />} />
 
           {/* Next steps (we’ll build these pages later) */}
-          <Route path="/bookings" element={<MyBookings />} />
+          <Route
+            path="/bookings"
+            element={(
+              <RequireAuth me={me}>
+                <MyBookings />
+              </RequireAuth>
+            )}
+          />
           <Route path="/admin" element={<Admin me={me} />} />
 
           {/* fallback */}
