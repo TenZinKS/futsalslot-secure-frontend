@@ -2,15 +2,13 @@ import React from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { apiFetch } from "../api";
 
-export default function Login({ onAuthChange }) {
+export default function Login({ onAuthChange, showError, showSuccess }) {
   const [email, setEmail] = React.useState("");
   const [password, setPassword] = React.useState("");
   const [loading, setLoading] = React.useState(false);
 
   const nav = useNavigate();
   const location = useLocation();
-
-  // where the user wanted to go before redirect to login
   const from = location.state?.from || "/";
 
   async function submit(e) {
@@ -22,13 +20,11 @@ export default function Login({ onAuthChange }) {
         body: { email, password },
       });
 
-      // refresh auth state in App
       await onAuthChange?.();
-
-      // redirect back to intended page
+      showSuccess?.("Logged in successfully");
       nav(from, { replace: true });
     } catch (err) {
-      alert(err.message);
+      showError?.(err.message || "Login failed");
     } finally {
       setLoading(false);
     }

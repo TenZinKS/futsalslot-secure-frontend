@@ -8,9 +8,9 @@ import Register from "./pages/Register";
 import Slots from "./pages/Slots";
 import MyBookings from "./pages/MyBookings";
 import Admin from "./pages/Admin";
+
 import RequireAuth from "./components/RequireAuth";
-
-
+import Notify from "./components/Notify";
 
 function Placeholder({ title }) {
   return (
@@ -23,7 +23,20 @@ function Placeholder({ title }) {
 
 export default function App() {
   const [me, setMe] = React.useState(null);
+  const [notice, setNotice] = React.useState(null);
   const nav = useNavigate();
+
+  function showError(message) {
+    setNotice({ type: "error", message });
+    window.clearTimeout(window.__noticeTimer);
+    window.__noticeTimer = window.setTimeout(() => setNotice(null), 4000);
+  }
+
+  function showSuccess(message) {
+    setNotice({ type: "success", message });
+    window.clearTimeout(window.__noticeTimer);
+    window.__noticeTimer = window.setTimeout(() => setNotice(null), 2500);
+  }
 
   async function loadMe() {
     try {
@@ -42,14 +55,17 @@ export default function App() {
     try {
       await apiFetch("/auth/logout", { method: "POST" });
       setMe(null);
+      showSuccess("Logged out");
       nav("/login");
     } catch (e) {
-      alert(e.message);
+      showError(e.message);
     }
   }
 
   return (
     <div className="app-shell">
+      <Notify notice={notice} onClose={() => setNotice(null)} />
+
       <header className="topbar">
         <div className="brand">
           <div className="brand-mark" aria-hidden="true" />
@@ -63,6 +79,7 @@ export default function App() {
           <Link className="nav-link" to="/">Home</Link>
           <Link className="nav-link" to="/slots">Slots</Link>
           <Link className="nav-link" to="/bookings">My bookings</Link>
+          <Link className="nav-link" to="/admin">Admin</Link>
         </nav>
 
         <div className="nav-actions">
@@ -85,33 +102,47 @@ export default function App() {
 
       <main className="page">
         <Routes>
-          {/* Landing */}
           <Route path="/" element={<Home me={me} />} />
 
-          {/* Main pages */}
           <Route
             path="/slots"
-            element={(
+            element={
               <RequireAuth me={me}>
                 <Slots />
               </RequireAuth>
-            )}
+            }
           />
-          <Route path="/login" element={<Login onAuthChange={loadMe} />} />
-          <Route path="/register" element={<Register />} />
 
-          {/* Next steps (we’ll build these pages later) */}
           <Route
             path="/bookings"
-            element={(
+            element={
               <RequireAuth me={me}>
                 <MyBookings />
               </RequireAuth>
-            )}
+            }
           />
-          <Route path="/admin" element={<Admin me={me} />} />
 
-          {/* fallback */}
+          <Route
+            path="/admin"
+            element={
+              <RequireAuth me={me}>
+                <Admin me={me} />
+              </RequireAuth>
+            }
+          />
+
+          <Route
+            path="/login"
+            element={
+              <Login
+                onAuthChange={loadMe}
+                showError={showError}
+                showSuccess={showSuccess}
+              />
+            }
+          />
+
+          <Route path="/register" element={<Register />} />
           <Route path="*" element={<Placeholder title="404 Not Found" />} />
         </Routes>
       </main>
