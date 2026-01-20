@@ -1,35 +1,63 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
-import './App.css'
+import React from "react";
+import { Link, Routes, Route, useNavigate } from "react-router-dom";
+import { apiFetch } from "./api";
+import Login from "./pages/Login";
 
-function App() {
-  const [count, setCount] = useState(0)
-
-  return (
-    <>
-      <div>
-        <a href="https://vite.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.jsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
-    </>
-  )
+function Home() {
+  return <div>Home (Slots page next)</div>;
 }
 
-export default App
+function RegisterPlaceholder() {
+  return <div>Register page next</div>;
+}
+
+export default function App() {
+  const [me, setMe] = React.useState(null);
+  const nav = useNavigate();
+
+  async function loadMe() {
+    try {
+      const data = await apiFetch("/auth/me");
+      setMe(data);
+    } catch {
+      setMe(null);
+    }
+  }
+
+  React.useEffect(() => {
+    loadMe();
+  }, []);
+
+  async function logout() {
+    try {
+      await apiFetch("/auth/logout", { method: "POST" });
+      setMe(null);
+      nav("/login");
+    } catch (e) {
+      alert(e.message);
+    }
+  }
+
+  return (
+    <div style={{ maxWidth: 960, margin: "0 auto", padding: 16, fontFamily: "system-ui" }}>
+      <header style={{ display: "flex", gap: 12, alignItems: "center", marginBottom: 16 }}>
+        <h2 style={{ marginRight: "auto" }}>FutsalSlot</h2>
+
+        <Link to="/">Home</Link>
+        {!me ? <Link to="/login">Login</Link> : <button onClick={logout}>Logout</button>}
+      </header>
+
+      {me && (
+        <div style={{ padding: 10, border: "1px solid #ddd", borderRadius: 8, marginBottom: 16 }}>
+          Logged in as <b>{me.email}</b> — Roles: <b>{(me.roles || []).join(", ")}</b>
+        </div>
+      )}
+
+      <Routes>
+        <Route path="/" element={<Home />} />
+        <Route path="/login" element={<Login onAuthChange={loadMe} />} />
+        <Route path="/register" element={<RegisterPlaceholder />} />
+      </Routes>
+    </div>
+  );
+}
