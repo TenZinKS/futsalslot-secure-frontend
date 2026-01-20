@@ -106,6 +106,61 @@ export default function Admin({ me }) {
     }
   }
 
+  function exportAuditLogsCsv() {
+    if (!auditLogs.length) {
+      alert("No audit logs to export.");
+      return;
+    }
+
+    const headers = [
+      "id",
+      "created_at",
+      "user_id",
+      "action",
+      "entity",
+      "entity_id",
+      "ip",
+      "user_agent",
+      "metadata",
+    ];
+
+    const escapeCsv = (value) => {
+      if (value === null || value === undefined) return "";
+      const str = typeof value === "string" ? value : JSON.stringify(value);
+      if (/[",\n]/.test(str)) {
+        return `"${str.replace(/"/g, '""')}"`;
+      }
+      return str;
+    };
+
+    const rows = auditLogs.map((log) => [
+      log.id,
+      log.created_at,
+      log.user_id,
+      log.action,
+      log.entity,
+      log.entity_id,
+      log.ip,
+      log.user_agent,
+      log.metadata,
+    ]);
+
+    const csv = [headers.join(",")]
+      .concat(rows.map((row) => row.map(escapeCsv).join(",")))
+      .join("\n");
+
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    const ts = new Date().toISOString().replace(/[:.]/g, "-");
+    link.href = url;
+    link.download = `audit-logs-${ts}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+  }
+
   React.useEffect(() => {
     loadCourts();
     loadBookings();
@@ -314,9 +369,14 @@ export default function Admin({ me }) {
               <h3 className="section-title">Audit logs</h3>
               <p className="subtle-text">Latest admin-level events.</p>
             </div>
-            <button className="btn btn-ghost" onClick={loadAuditLogs} disabled={loadingAudit}>
-              {loadingAudit ? "Refreshing..." : "Refresh"}
-            </button>
+            <div className="row">
+              <button className="btn btn-ghost" onClick={exportAuditLogsCsv}>
+                Export CSV
+              </button>
+              <button className="btn btn-ghost" onClick={loadAuditLogs} disabled={loadingAudit}>
+                {loadingAudit ? "Refreshing..." : "Refresh"}
+              </button>
+            </div>
           </div>
 
           {auditError && <div className="subtle-text">{auditError}</div>}
