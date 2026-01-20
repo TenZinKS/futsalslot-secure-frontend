@@ -28,8 +28,21 @@ export async function apiFetch(path, { method = "GET", body, headers = {} } = {}
   const data = contentType.includes("application/json") ? await res.json() : await res.text();
 
   if (!res.ok) {
-    const msg = typeof data === "object" && data?.error ? data.error : `Request failed (${res.status})`;
-    throw new Error(msg);
+    // Prefer backend-provided message
+    let msg =
+      typeof data === "object" && data?.error
+        ? data.error
+        : `Request failed (${res.status})`;
+
+    // Add clearer messages for common security responses
+    if (res.status === 401) msg = msg || "Authentication required. Please login.";
+    if (res.status === 403) msg = msg || "Forbidden. You don't have permission for this action.";
+    if (res.status === 429) msg = msg || "Too many requests. Please slow down and try again.";
+
+    const err = new Error(msg);
+    err.status = res.status;   // helpful if you want custom UI later
+    err.payload = data;        // optional debugging
+    throw err;
   }
 
   return data;
