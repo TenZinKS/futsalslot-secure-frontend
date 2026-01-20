@@ -15,6 +15,28 @@ export default function Slots() {
   const [date, setDate] = React.useState(todayISO());
   const [slots, setSlots] = React.useState([]);
   const [loading, setLoading] = React.useState(false);
+  const [payingSlotId, setPayingSlotId] = React.useState(null);
+
+  async function bookAndPay(slot_id) {
+    setPayingSlotId(slot_id);
+    try {
+        // 1) create booking (PENDING_PAYMENT)
+        const booking = await apiFetch("/bookings", { method: "POST", body: { slot_id } });
+
+        // 2) start stripe checkout (returns checkout_url)
+        const pay = await apiFetch("/payments/start", {
+        method: "POST",
+        body: { booking_id: booking.id },
+        });
+
+        // 3) redirect to Stripe
+        window.location.href = pay.checkout_url;
+    } catch (e) {
+        alert(e.message);
+    } finally {
+        setPayingSlotId(null);
+    }
+    }
 
   async function loadCourts() {
     const data = await apiFetch("/courts");
@@ -109,9 +131,14 @@ export default function Slots() {
               </div>
             </div>
 
-            <button disabled={!s.available} title={!s.available ? "Already booked" : "Booking next step"}>
-              Book (next)
+            <button
+                disabled={!s.available || payingSlotId === s.id}
+                onClick={() => bookAndPay(s.id)}
+                title={!s.available ? "Already booked" : "Book and pay via Stripe"}
+                >
+                {payingSlotId === s.id ? "Redirecting..." : "Book & Pay"}
             </button>
+
           </div>
         ))}
 
