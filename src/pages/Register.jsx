@@ -26,38 +26,45 @@ export default function Register() {
   }
 
   return (
-    <div style={{ maxWidth: 420 }}>
-      <h2>Register</h2>
-      <form onSubmit={submit} style={{ display: "grid", gap: 10 }}>
-        <label>
-          Email
-          <input
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            placeholder="you@example.com"
-            autoComplete="email"
-            required
-          />
-        </label>
+    <div className="section-card form-card stack">
+      <div className="stack-tight">
+        <h2>Create your account</h2>
+        <p className="subtle-text">Get started and lock in your next match.</p>
+      </div>
+      <form onSubmit={submit} className="stack">
+        <div className="field">
+          <label>
+            Email
+            <input
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="you@example.com"
+              autoComplete="email"
+              required
+            />
+          </label>
+        </div>
 
-        <label>
-          Password (min 12 characters)
-          <input
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            type="password"
-            autoComplete="new-password"
-            minLength={12}
-            required
-          />
-        </label>
+        <div className="field">
+          <label>
+            Password (min 12 characters)
+            <input
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              type="password"
+              autoComplete="new-password"
+              minLength={12}
+              required
+            />
+          </label>
+        </div>
 
-        <button disabled={loading} type="submit">
+        <button className="btn btn-primary" disabled={loading} type="submit">
           {loading ? "Creating..." : "Create account"}
         </button>
       </form>
 
-      <p style={{ marginTop: 10 }}>
+      <p className="meta">
         Already have an account? <Link to="/login">Login</Link>
       </p>
     </div>

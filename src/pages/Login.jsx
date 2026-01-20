@@ -26,37 +26,44 @@ export default function Login({ onAuthChange }) {
   }
 
   return (
-    <div style={{ maxWidth: 420 }}>
-      <h2>Login</h2>
-      <form onSubmit={submit} style={{ display: "grid", gap: 10 }}>
-        <label>
-          Email
-          <input
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            placeholder="you@example.com"
-            autoComplete="email"
-            required
-          />
-        </label>
+    <div className="section-card form-card stack">
+      <div className="stack-tight">
+        <h2>Welcome back</h2>
+        <p className="subtle-text">Sign in to manage your bookings.</p>
+      </div>
+      <form onSubmit={submit} className="stack">
+        <div className="field">
+          <label>
+            Email
+            <input
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="you@example.com"
+              autoComplete="email"
+              required
+            />
+          </label>
+        </div>
 
-        <label>
-          Password
-          <input
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            type="password"
-            autoComplete="current-password"
-            required
-          />
-        </label>
+        <div className="field">
+          <label>
+            Password
+            <input
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              type="password"
+              autoComplete="current-password"
+              required
+            />
+          </label>
+        </div>
 
-        <button disabled={loading} type="submit">
+        <button className="btn btn-primary" disabled={loading} type="submit">
           {loading ? "Logging in..." : "Login"}
         </button>
       </form>
 
-      <p style={{ marginTop: 10 }}>
+      <p className="meta">
         No account? <Link to="/register">Register</Link>
       </p>
     </div>

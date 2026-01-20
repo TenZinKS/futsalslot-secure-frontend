@@ -48,47 +48,58 @@ export default function App() {
   }
 
   return (
-    <div style={{ maxWidth: 960, margin: "0 auto", padding: 16, fontFamily: "system-ui" }}>
-      <header style={{ display: "flex", gap: 12, alignItems: "center", marginBottom: 16, flexWrap: "wrap" }}>
-        <h2 style={{ marginRight: "auto" }}>FutsalSlot</h2>
+    <div className="app-shell">
+      <header className="topbar">
+        <div className="brand">
+          <div className="brand-mark" aria-hidden="true" />
+          <div>
+            <div style={{ fontWeight: 700 }}>FutsalSlot</div>
+            <div className="meta">Book courts with confidence</div>
+          </div>
+        </div>
 
-        <Link to="/">Home</Link>
-        <Link to="/slots">Slots</Link>
-        <Link to="/bookings">My bookings</Link>
-        <Link to="/admin">Admin</Link>
+        <nav className="nav-links">
+          <Link className="nav-link" to="/">Home</Link>
+          <Link className="nav-link" to="/slots">Slots</Link>
+          <Link className="nav-link" to="/bookings">My bookings</Link>
+        </nav>
 
-        {!me ? (
-          <>
-            <Link to="/login">Login</Link>
-            <Link to="/register">Register</Link>
-          </>
-        ) : (
-          <button onClick={logout}>Logout</button>
-        )}
+        <div className="nav-actions">
+          {!me ? (
+            <>
+              <Link className="btn btn-ghost" to="/login">Login</Link>
+              <Link className="btn btn-primary" to="/register">Register</Link>
+            </>
+          ) : (
+            <button className="btn btn-ghost" onClick={logout}>Logout</button>
+          )}
+        </div>
       </header>
 
       {me && (
-        <div style={{ padding: 10, border: "1px solid #ddd", borderRadius: 8, marginBottom: 16 }}>
+        <div className="status-card">
           Logged in as <b>{me.email}</b> — Roles: <b>{(me.roles || []).join(", ")}</b>
         </div>
       )}
 
-      <Routes>
-        {/* Landing */}
-        <Route path="/" element={<Home me={me} />} />
+      <main className="page">
+        <Routes>
+          {/* Landing */}
+          <Route path="/" element={<Home me={me} />} />
 
-        {/* Main pages */}
-        <Route path="/slots" element={<Slots />} />
-        <Route path="/login" element={<Login onAuthChange={loadMe} />} />
-        <Route path="/register" element={<Register />} />
+          {/* Main pages */}
+          <Route path="/slots" element={<Slots />} />
+          <Route path="/login" element={<Login onAuthChange={loadMe} />} />
+          <Route path="/register" element={<Register />} />
 
-        {/* Next steps (we’ll build these pages later) */}
-        <Route path="/bookings" element={<MyBookings />} />
-        <Route path="/admin" element={<Admin me={me} />} />
+          {/* Next steps (we’ll build these pages later) */}
+          <Route path="/bookings" element={<MyBookings />} />
+          <Route path="/admin" element={<Admin me={me} />} />
 
-        {/* fallback */}
-        <Route path="*" element={<Placeholder title="404 Not Found" />} />
-      </Routes>
+          {/* fallback */}
+          <Route path="*" element={<Placeholder title="404 Not Found" />} />
+        </Routes>
+      </main>
     </div>
   );
 }

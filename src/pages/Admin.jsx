@@ -30,6 +30,9 @@ export default function Admin({ me }) {
     me?.roles?.includes("ADMIN") || me?.roles?.includes("STAFF");
 
   const [courts, setCourts] = React.useState([]);
+  const [bookings, setBookings] = React.useState([]);
+  const [loadingBookings, setLoadingBookings] = React.useState(false);
+  const [cancellingBookingId, setCancellingBookingId] = React.useState(null);
 
   // court form
   const [courtName, setCourtName] = React.useState("");
@@ -52,8 +55,42 @@ export default function Admin({ me }) {
     }
   }
 
+  async function loadBookings() {
+    setLoadingBookings(true);
+    try {
+      const data = await apiFetch("/bookings");
+      setBookings(Array.isArray(data) ? data : []);
+    } catch (e) {
+      alert(e.message);
+      setBookings([]);
+    } finally {
+      setLoadingBookings(false);
+    }
+  }
+
+  async function adminCancelBooking(booking) {
+    if (booking.status !== "CONFIRMED") {
+      alert("Only CONFIRMED bookings can be cancelled.");
+      return;
+    }
+    if (!confirm("Cancel this booking?")) return;
+    setCancellingBookingId(booking.id);
+    try {
+      await apiFetch(`/bookings/${booking.id}/admin_cancel`, {
+        method: "POST",
+        body: { reason: "Admin cancelled from UI" },
+      });
+      await loadBookings();
+    } catch (e) {
+      alert(e.message);
+    } finally {
+      setCancellingBookingId(null);
+    }
+  }
+
   React.useEffect(() => {
     loadCourts();
+    loadBookings();
   }, []);
 
   async function createCourt() {
@@ -92,12 +129,15 @@ export default function Admin({ me }) {
   if (!isStaff) return <div>Admin/Staff only.</div>;
 
   return (
-    <div style={{ display: "grid", gap: 16 }}>
-      <h2>Admin</h2>
+    <div className="stack">
+      <div className="stack-tight">
+        <h2>Admin</h2>
+        <p className="subtle-text">Manage courts, slots, and customer bookings.</p>
+      </div>
 
-      <div style={{ border: "1px solid #ddd", borderRadius: 10, padding: 12 }}>
-        <h3 style={{ marginTop: 0 }}>Create court</h3>
-        <div style={{ display: "grid", gap: 10, maxWidth: 420 }}>
+      <section className="section-card stack">
+        <h3 className="section-title">Create court</h3>
+        <div className="stack" style={{ maxWidth: 420 }}>
           <input
             placeholder="Court name (unique)"
             value={courtName}
@@ -108,65 +148,142 @@ export default function Admin({ me }) {
             value={courtLocation}
             onChange={(e) => setCourtLocation(e.target.value)}
           />
-          <button onClick={createCourt} disabled={!courtName.trim()}>
+          <button className="btn btn-primary" onClick={createCourt} disabled={!courtName.trim()}>
             Create court
           </button>
         </div>
-      </div>
+      </section>
 
-      <div style={{ border: "1px solid #ddd", borderRadius: 10, padding: 12 }}>
-        <h3 style={{ marginTop: 0 }}>Create slot</h3>
+      <section className="section-card stack">
+        <h3 className="section-title">Create slot</h3>
 
-        <div style={{ display: "grid", gap: 10, maxWidth: 520 }}>
-          <label>
-            Court
-            <select value={courtId} onChange={(e) => setCourtId(e.target.value)}>
-              <option value="">Select a court</option>
-              {courts.map((c) => (
+        <div className="stack" style={{ maxWidth: 520 }}>
+          <div className="field">
+            <label>
+              Court
+              <select value={courtId} onChange={(e) => setCourtId(e.target.value)}>
+                <option value="">Select a court</option>
+                {courts.map((c) => (
                 <option key={c.id} value={c.id}>
-                  {c.name} (#{c.id})
+                  {c.name}
                 </option>
               ))}
             </select>
           </label>
+          </div>
 
-          <label>
-            Start time
-            <input
-              type="datetime-local"
-              value={startTime}
-              onChange={(e) => setStartTime(e.target.value)}
-            />
-          </label>
+          <div className="field">
+            <label>
+              Start time
+              <input
+                type="datetime-local"
+                value={startTime}
+                onChange={(e) => setStartTime(e.target.value)}
+              />
+            </label>
+          </div>
 
-          <label>
-            End time
-            <input
-              type="datetime-local"
-              value={endTime}
-              onChange={(e) => setEndTime(e.target.value)}
-            />
-          </label>
+          <div className="field">
+            <label>
+              End time
+              <input
+                type="datetime-local"
+                value={endTime}
+                onChange={(e) => setEndTime(e.target.value)}
+              />
+            </label>
+          </div>
 
-          <label>
-            Price (NPR)
-            <input
-              type="number"
-              value={price}
-              onChange={(e) => setPrice(e.target.value)}
-              min="0"
-            />
-          </label>
+          <div className="field">
+            <label>
+              Price (NPR)
+              <input
+                type="number"
+                value={price}
+                onChange={(e) => setPrice(e.target.value)}
+                min="0"
+              />
+            </label>
+          </div>
 
-          <button onClick={createSlot} disabled={!courtId}>
+          <button className="btn btn-primary" onClick={createSlot} disabled={!courtId}>
             Create slot
           </button>
         </div>
 
-        <p style={{ marginTop: 10, color: "#666", fontSize: 13 }}>
-          Tip: Times are entered in your local timezone.
-        </p>
-      </div>
+        <p className="meta">Tip: Times are entered in your local timezone.</p>
+      </section>
+
+      <section className="section-card stack">
+        <div className="row" style={{ justifyContent: "space-between" }}>
+          <h3 className="section-title">Recent bookings</h3>
+          <button className="btn btn-ghost" onClick={loadBookings} disabled={loadingBookings}>
+            {loadingBookings ? "Refreshing..." : "Refresh"}
+          </button>
+        </div>
+
+        <div className="grid-list">
+          {bookings.map((b) => (
+            <div key={b.id} className="list-item stack">
+              <div className="row" style={{ justifyContent: "space-between" }}>
+                <div>
+                  <b>Booking #{b.id}</b>
+                </div>
+                <div className="row">
+                  <span className={`pill ${b.status === "CANCELLED" ? "pill-cancelled" : ""}`}>
+                    {b.status}
+                  </span>
+                  {b.status !== "CANCELLED" && (
+                    <button
+                      className="btn btn-danger"
+                      onClick={() => adminCancelBooking(b)}
+                      disabled={b.status !== "CONFIRMED" || cancellingBookingId === b.id}
+                      title={
+                        b.status !== "CONFIRMED"
+                          ? "Only CONFIRMED bookings can be cancelled"
+                          : "Cancel booking"
+                      }
+                    >
+                      {cancellingBookingId === b.id ? "Cancelling..." : "Admin cancel"}
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              <div className="meta">
+                Created: {b.created_at}
+              </div>
+
+              {b.cancelled_at && (
+                <div className="meta">
+                  Cancelled: {b.cancelled_at}
+                </div>
+              )}
+
+              {b.user && (
+                <div className="meta">
+                  User: {b.user.email || b.user.id}
+                </div>
+              )}
+
+              {b.slot && (
+                <div className="stack-tight">
+                  <div>
+                    Slot: <b>{b.slot.start_time}</b> → <b>{b.slot.end_time}</b>
+                  </div>
+                  <div className="meta">
+                    Court ID: {b.slot.court_id} | Price: {b.slot.price} NPR
+                  </div>
+                </div>
+              )}
+            </div>
+          ))}
+
+          {!loadingBookings && bookings.length === 0 && (
+            <div className="subtle-text">No bookings yet.</div>
+          )}
+        </div>
+      </section>
     </div>
   );
 }

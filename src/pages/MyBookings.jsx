@@ -55,49 +55,57 @@ export default function MyBookings() {
   }, []);
 
   return (
-    <div>
-      <h2>My bookings</h2>
-      <button onClick={load} disabled={loading} style={{ marginBottom: 12 }}>
-        {loading ? "Refreshing..." : "Refresh"}
-      </button>
+    <div className="stack">
+      <div className="row" style={{ justifyContent: "space-between" }}>
+        <div className="stack-tight">
+          <h2>My bookings</h2>
+          <p className="subtle-text">Track upcoming games and manage cancellations.</p>
+        </div>
+        <button onClick={load} disabled={loading} className="btn btn-ghost">
+          {loading ? "Refreshing..." : "Refresh"}
+        </button>
+      </div>
 
-      <div style={{ display: "grid", gap: 10 }}>
+      <div className="grid-list">
         {rows.map((b) => (
-          <div key={b.id} style={{ border: "1px solid #ddd", borderRadius: 10, padding: 12 }}>
-            <div style={{ display: "flex", justifyContent: "space-between", gap: 10, flexWrap: "wrap" }}>
+          <div key={b.id} className="list-item stack">
+            <div className="row" style={{ justifyContent: "space-between" }}>
               <div>
                 <b>Booking #{b.id}</b>
               </div>
-              <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
-                <span style={{ padding: "2px 8px", border: "1px solid #ddd", borderRadius: 999, fontSize: 12 }}>
+              <div className="row">
+                <span className={`pill ${b.status === "CANCELLED" ? "pill-cancelled" : ""}`}>
                   {b.status}
                 </span>
-                <button
-                  onClick={() => cancelBooking(b.id)}
-                  disabled={!!b.cancelled_at || b.status === "CANCELLED" || cancellingId === b.id}
-                  title={b.cancelled_at || b.status === "CANCELLED" ? "Already cancelled" : "Cancel booking"}
-                >
-                  {cancellingId === b.id ? "Cancelling..." : "Cancel"}
-                </button>
+                {b.status !== "CANCELLED" && (
+                  <button
+                    onClick={() => cancelBooking(b.id)}
+                    disabled={cancellingId === b.id}
+                    title="Cancel booking"
+                    className="btn btn-danger"
+                  >
+                    {cancellingId === b.id ? "Cancelling..." : "Cancel"}
+                  </button>
+                )}
               </div>
             </div>
 
-            <div style={{ fontSize: 14, marginTop: 6 }}>
+            <div className="meta">
               Created: {b.created_at}
             </div>
 
             {b.cancelled_at && (
-              <div style={{ fontSize: 14 }}>
+              <div className="meta">
                 Cancelled: {b.cancelled_at}
               </div>
             )}
 
             {b.slot && (
-              <div style={{ marginTop: 8, fontSize: 14 }}>
+              <div className="stack-tight">
                 <div>
                   Slot: <b>{b.slot.start_time}</b> → <b>{b.slot.end_time}</b>
                 </div>
-                <div>
+                <div className="meta">
                   Court ID: {b.slot.court_id} | Price: {b.slot.price} NPR
                 </div>
               </div>
@@ -106,7 +114,7 @@ export default function MyBookings() {
         ))}
 
         {!loading && rows.length === 0 && (
-          <div style={{ color: "#666" }}>No bookings yet.</div>
+          <div className="subtle-text">No bookings yet.</div>
         )}
       </div>
     </div>

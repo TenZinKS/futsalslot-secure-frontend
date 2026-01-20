@@ -67,83 +67,74 @@ export default function Slots() {
   }, [courtId, date]);
 
   return (
-    <div>
-      <h2>Slots</h2>
+    <div className="stack">
+      <div className="row">
+        <div className="stack-tight">
+          <h2>Slots</h2>
+          <p className="subtle-text">Filter by court and date to find availability.</p>
+        </div>
+      </div>
 
-      <div style={{ display: "flex", gap: 10, alignItems: "center", marginBottom: 12, flexWrap: "wrap" }}>
-        <label>
-          Court&nbsp;
-          <select value={courtId} onChange={(e) => setCourtId(e.target.value)}>
-            <option value="">All courts</option>
-            {courts.map((c) => (
+      <div className="toolbar">
+        <div className="field">
+          <label>
+            Court
+            <select value={courtId} onChange={(e) => setCourtId(e.target.value)}>
+              <option value="">All courts</option>
+              {courts.map((c) => (
               <option key={c.id} value={c.id}>
-                {c.name} (#{c.id})
+                {c.name}
               </option>
             ))}
           </select>
         </label>
+        </div>
 
-        <label>
-          Date&nbsp;
-          <input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
-        </label>
+        <div className="field">
+          <label>
+            Date
+            <input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
+          </label>
+        </div>
 
-        <button onClick={() => loadSlots().catch((e) => alert(e.message))}>
+        <button className="btn btn-ghost" onClick={() => loadSlots().catch((e) => alert(e.message))}>
           Refresh
         </button>
       </div>
 
-      {loading && <div>Loading slots...</div>}
+      {loading && <div className="subtle-text">Loading slots...</div>}
 
-      <div style={{ display: "grid", gap: 10 }}>
+      <div className="grid-list">
         {slots.map((s) => (
-          <div
-            key={s.id}
-            style={{
-              border: "1px solid #ddd",
-              borderRadius: 10,
-              padding: 12,
-              display: "flex",
-              justifyContent: "space-between",
-              gap: 12,
-              alignItems: "center",
-            }}
-          >
-            <div>
+          <div key={s.id} className="list-item row" style={{ justifyContent: "space-between" }}>
+            <div className="stack-tight">
               <div style={{ fontWeight: 700 }}>
-                Slot #{s.id} — Court {s.court_id}
+                Court {s.court_id}
               </div>
-              <div style={{ fontSize: 14 }}>
+              <div className="meta">
                 {s.start_time} → {s.end_time}
               </div>
-              <div style={{ fontSize: 14 }}>Price: {s.price} NPR</div>
-              <div style={{ marginTop: 6 }}>
-                <span
-                  style={{
-                    padding: "2px 8px",
-                    borderRadius: 999,
-                    border: "1px solid #ddd",
-                    fontSize: 12,
-                  }}
-                >
+              <div className="meta">Price: {s.price} NPR</div>
+              <div>
+                <span className={`pill ${s.available ? "pill-success" : "pill-muted"}`}>
                   {s.available ? "Available" : "Booked"}
                 </span>
               </div>
             </div>
 
             <button
-                disabled={!s.available || payingSlotId === s.id}
-                onClick={() => bookAndPay(s.id)}
-                title={!s.available ? "Already booked" : "Book and pay via Stripe"}
-                >
-                {payingSlotId === s.id ? "Redirecting..." : "Book & Pay"}
+              className="btn btn-primary"
+              disabled={!s.available || payingSlotId === s.id}
+              onClick={() => bookAndPay(s.id)}
+              title={!s.available ? "Already booked" : "Book and pay via Stripe"}
+            >
+              {payingSlotId === s.id ? "Redirecting..." : "Book & Pay"}
             </button>
-
           </div>
         ))}
 
         {!loading && slots.length === 0 && (
-          <div style={{ color: "#666" }}>No slots found for this filter.</div>
+          <div className="subtle-text">No slots found for this filter.</div>
         )}
       </div>
     </div>
