@@ -1,4 +1,4 @@
-const API_BASE = "http://127.0.0.1:5002";
+const API_BASE = "http://localhost:5002";
 
 function getCookie(name) {
   const m = document.cookie.match(new RegExp("(^| )" + name + "=([^;]+)"));
