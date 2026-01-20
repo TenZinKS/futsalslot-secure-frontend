@@ -28,11 +28,15 @@ function toIsoLocalSeconds(value) {
 export default function Admin({ me }) {
   const isStaff =
     me?.roles?.includes("ADMIN") || me?.roles?.includes("STAFF");
+  const isAdmin = me?.roles?.includes("ADMIN");
 
   const [courts, setCourts] = React.useState([]);
   const [bookings, setBookings] = React.useState([]);
   const [loadingBookings, setLoadingBookings] = React.useState(false);
   const [cancellingBookingId, setCancellingBookingId] = React.useState(null);
+  const [auditLogs, setAuditLogs] = React.useState([]);
+  const [loadingAudit, setLoadingAudit] = React.useState(false);
+  const [auditError, setAuditError] = React.useState("");
 
   // court form
   const [courtName, setCourtName] = React.useState("");
@@ -88,9 +92,27 @@ export default function Admin({ me }) {
     }
   }
 
+  async function loadAuditLogs() {
+    setLoadingAudit(true);
+    setAuditError("");
+    try {
+      const data = await apiFetch("/admin/audit-logs?limit=100");
+      setAuditLogs(Array.isArray(data) ? data : []);
+    } catch (e) {
+      setAuditError(e.message || "Unable to load audit logs.");
+      setAuditLogs([]);
+    } finally {
+      setLoadingAudit(false);
+    }
+  }
+
   React.useEffect(() => {
     loadCourts();
     loadBookings();
+    if (isAdmin) {
+      loadAuditLogs();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   async function createCourt() {
@@ -284,6 +306,51 @@ export default function Admin({ me }) {
           )}
         </div>
       </section>
+
+      {isAdmin && (
+        <section className="section-card stack">
+          <div className="row" style={{ justifyContent: "space-between" }}>
+            <div className="stack-tight">
+              <h3 className="section-title">Audit logs</h3>
+              <p className="subtle-text">Latest admin-level events.</p>
+            </div>
+            <button className="btn btn-ghost" onClick={loadAuditLogs} disabled={loadingAudit}>
+              {loadingAudit ? "Refreshing..." : "Refresh"}
+            </button>
+          </div>
+
+          {auditError && <div className="subtle-text">{auditError}</div>}
+
+          <div className="grid-list">
+            {auditLogs.map((log) => (
+              <div key={log.id} className="list-item stack">
+                <div className="row" style={{ justifyContent: "space-between" }}>
+                  <div>
+                    <b>{log.action || "EVENT"}</b>
+                  </div>
+                  {log.created_at && <span className="meta">{log.created_at}</span>}
+                </div>
+
+                <div className="meta">
+                  User: {log.user_id ?? "n/a"} | Entity: {log.entity || "n/a"} {log.entity_id ? `#${log.entity_id}` : ""}
+                </div>
+
+                {log.ip && <div className="meta">IP: {log.ip}</div>}
+
+                {log.metadata && (
+                  <pre className="meta" style={{ margin: 0, whiteSpace: "pre-wrap" }}>
+                    {JSON.stringify(log.metadata, null, 2)}
+                  </pre>
+                )}
+              </div>
+            ))}
+
+            {!loadingAudit && auditLogs.length === 0 && !auditError && (
+              <div className="subtle-text">No audit logs found.</div>
+            )}
+          </div>
+        </section>
+      )}
     </div>
   );
 }
