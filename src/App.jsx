@@ -6,6 +6,8 @@ import Home from "./pages/Home";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import Slots from "./pages/Slots";
+import MyBookings from "./pages/MyBookings";
+
 
 function Placeholder({ title }) {
   return (
@@ -79,7 +81,7 @@ export default function App() {
         <Route path="/register" element={<Register />} />
 
         {/* Next steps (we’ll build these pages later) */}
-        <Route path="/bookings" element={<Placeholder title="My bookings" />} />
+        <Route path="/bookings" element={<MyBookings />} />
         <Route path="/admin" element={<Placeholder title="Admin" />} />
 
         {/* fallback */}
