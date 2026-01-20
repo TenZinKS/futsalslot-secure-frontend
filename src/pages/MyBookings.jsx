@@ -4,6 +4,7 @@ import { apiFetch } from "../api";
 export default function MyBookings() {
   const [rows, setRows] = React.useState([]);
   const [loading, setLoading] = React.useState(false);
+  const [cancellingId, setCancellingId] = React.useState(null);
 
   async function load() {
     setLoading(true);
@@ -16,6 +17,38 @@ export default function MyBookings() {
       setLoading(false);
     }
   }
+
+  async function cancelBooking(id) {
+    if (!confirm("Cancel this booking?")) return;
+
+    setCancellingId(id);
+    try {
+      await apiFetch(`/bookings/${id}/cancel`, {
+        method: "POST",
+        body: { reason: "User cancelled from UI" },
+      });
+      await load(); // refresh list
+    } catch (e) {
+      alert(e.message);
+    } finally {
+      setCancellingId(null);
+    }
+  }
+
+  async function cancelBooking(id) {
+    if (!confirm("Cancel this booking?")) return;
+
+    try {
+        await apiFetch(`/bookings/${id}/cancel`, {
+        method: "POST",
+        body: { reason: "User cancelled from UI" },
+        });
+        await load(); // refresh list
+    } catch (e) {
+        alert(e.message);
+    }
+    }
+
 
   React.useEffect(() => {
     load();
@@ -35,9 +68,18 @@ export default function MyBookings() {
               <div>
                 <b>Booking #{b.id}</b>
               </div>
-              <span style={{ padding: "2px 8px", border: "1px solid #ddd", borderRadius: 999, fontSize: 12 }}>
-                {b.status}
-              </span>
+              <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+                <span style={{ padding: "2px 8px", border: "1px solid #ddd", borderRadius: 999, fontSize: 12 }}>
+                  {b.status}
+                </span>
+                <button
+                  onClick={() => cancelBooking(b.id)}
+                  disabled={!!b.cancelled_at || b.status === "CANCELLED" || cancellingId === b.id}
+                  title={b.cancelled_at || b.status === "CANCELLED" ? "Already cancelled" : "Cancel booking"}
+                >
+                  {cancellingId === b.id ? "Cancelling..." : "Cancel"}
+                </button>
+              </div>
             </div>
 
             <div style={{ fontSize: 14, marginTop: 6 }}>
