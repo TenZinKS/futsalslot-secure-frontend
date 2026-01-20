@@ -1,12 +1,17 @@
 import React from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import { apiFetch } from "../api";
 
 export default function Login({ onAuthChange }) {
   const [email, setEmail] = React.useState("");
   const [password, setPassword] = React.useState("");
   const [loading, setLoading] = React.useState(false);
+
   const nav = useNavigate();
+  const location = useLocation();
+
+  // where the user wanted to go before redirect to login
+  const from = location.state?.from || "/";
 
   async function submit(e) {
     e.preventDefault();
@@ -16,8 +21,12 @@ export default function Login({ onAuthChange }) {
         method: "POST",
         body: { email, password },
       });
+
+      // refresh auth state in App
       await onAuthChange?.();
-      nav("/");
+
+      // redirect back to intended page
+      nav(from, { replace: true });
     } catch (err) {
       alert(err.message);
     } finally {
@@ -31,6 +40,7 @@ export default function Login({ onAuthChange }) {
         <h2>Welcome back</h2>
         <p className="subtle-text">Sign in to manage your bookings.</p>
       </div>
+
       <form onSubmit={submit} className="stack">
         <div className="field">
           <label>
