@@ -5,6 +5,7 @@ import { apiFetch } from "./api";
 import Home from "./pages/Home";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
+import Courts from "./pages/Courts";
 import Slots from "./pages/Slots";
 import MyBookings from "./pages/MyBookings";
 import Admin from "./pages/Admin";
@@ -94,6 +95,7 @@ export default function App() {
 
         <nav className="nav-links">
           <Link className="nav-link" to="/">Home</Link>
+          <Link className="nav-link" to="/courts">Courts</Link>
           <Link className="nav-link" to="/slots">Slots</Link>
         </nav>
 
@@ -142,6 +144,7 @@ export default function App() {
       <main className="page">
         <Routes>
           <Route path="/" element={<Home me={me} />} />
+          <Route path="/courts" element={<Courts />} />
 
           <Route
             path="/slots"
@@ -177,6 +180,20 @@ export default function App() {
                 onAuthChange={loadMe}
                 showError={showError}
                 showSuccess={showSuccess}
+              />
+            }
+          />
+
+          <Route
+            path="/admin-login"
+            element={
+              <Login
+                onAuthChange={loadMe}
+                showError={showError}
+                showSuccess={showSuccess}
+                title="Admin access"
+                subtitle="Sign in with a staff account to manage courts and bookings."
+                variant="admin"
               />
             }
           />

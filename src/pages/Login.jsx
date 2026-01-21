@@ -2,7 +2,7 @@ import React from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { apiFetch } from "../api";
 
-export default function Login({ onAuthChange, showError, showSuccess }) {
+export default function Login({ onAuthChange, showError, showSuccess, title, subtitle, variant }) {
   const [email, setEmail] = React.useState("");
   const [password, setPassword] = React.useState("");
   const [loading, setLoading] = React.useState(false);
@@ -31,10 +31,10 @@ export default function Login({ onAuthChange, showError, showSuccess }) {
   }
 
   return (
-    <div className="section-card form-card stack">
+    <div className={`section-card form-card stack ${variant === "admin" ? "admin-login" : ""}`}>
       <div className="stack-tight">
-        <h2>Welcome back</h2>
-        <p className="subtle-text">Sign in to manage your bookings.</p>
+        <h2>{title || "Welcome back"}</h2>
+        <p className="subtle-text">{subtitle || "Sign in to manage your bookings."}</p>
       </div>
 
       <form onSubmit={submit} className="stack">

@@ -1,4 +1,5 @@
 import React from "react";
+import { useSearchParams } from "react-router-dom";
 import { apiFetch } from "../api";
 
 function todayISO() {
@@ -10,8 +11,9 @@ function todayISO() {
 }
 
 export default function Slots() {
+  const [searchParams, setSearchParams] = useSearchParams();
   const [courts, setCourts] = React.useState([]);
-  const [courtId, setCourtId] = React.useState("");
+  const [courtId, setCourtId] = React.useState(searchParams.get("court_id") || "");
   const [date, setDate] = React.useState(todayISO());
   const [slots, setSlots] = React.useState([]);
   const [loading, setLoading] = React.useState(false);
@@ -66,6 +68,19 @@ export default function Slots() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [courtId, date]);
 
+  React.useEffect(() => {
+    const param = searchParams.get("court_id") || "";
+    if (param !== courtId) setCourtId(param);
+  }, [searchParams, courtId]);
+
+  function getMapsLink(court) {
+    if (!court) return null;
+    if (court.maps_link) return court.maps_link;
+    const query = court.location || court.name;
+    if (!query) return null;
+    return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`;
+  }
+
   return (
     <div className="stack">
       <div className="row">
@@ -79,7 +94,18 @@ export default function Slots() {
         <div className="field">
           <label>
             Court
-            <select value={courtId} onChange={(e) => setCourtId(e.target.value)}>
+            <select
+              value={courtId}
+              onChange={(e) => {
+                const next = e.target.value;
+                setCourtId(next);
+                if (next) {
+                  setSearchParams({ court_id: next });
+                } else {
+                  setSearchParams({});
+                }
+              }}
+            >
               <option value="">All courts</option>
               {courts.map((c) => (
               <option key={c.id} value={c.id}>
@@ -106,11 +132,37 @@ export default function Slots() {
 
       <div className="grid-list">
         {slots.map((s) => (
-          <div key={s.id} className="list-item row" style={{ justifyContent: "space-between" }}>
-            <div className="stack-tight">
-              <div style={{ fontWeight: 700 }}>
-                Court {s.court_id}
-              </div>
+          <div key={s.id} className="list-item row slot-item">
+            <div className="slot-media">
+              {(() => {
+                const court = courts.find((c) => c.id === s.court_id);
+                const image = court?.image_urls?.[0];
+                return image ? (
+                  <img className="slot-thumb" src={image} alt={court.name || "Court"} />
+                ) : (
+                  <div className="slot-thumb slot-thumb-empty" />
+                );
+              })()}
+            </div>
+            <div className="stack-tight slot-meta">
+              {(() => {
+                const court = courts.find((c) => c.id === s.court_id);
+                const mapsLink = getMapsLink(court);
+                return (
+                  <>
+                    <div style={{ fontWeight: 700 }}>
+                      {court?.name || `Court ${s.court_id}`}
+                    </div>
+                    {court?.location && <div className="meta">{court.location}</div>}
+                    {court?.description && <div className="meta">{court.description}</div>}
+                    {mapsLink && (
+                      <a className="slot-link" href={mapsLink} target="_blank" rel="noreferrer">
+                        View on Google Maps
+                      </a>
+                    )}
+                  </>
+                );
+              })()}
               <div className="meta">
                 {s.start_time} → {s.end_time}
               </div>

@@ -41,6 +41,8 @@ export default function Admin({ me }) {
   // court form
   const [courtName, setCourtName] = React.useState("");
   const [courtLocation, setCourtLocation] = React.useState("");
+  const [courtDescription, setCourtDescription] = React.useState("");
+  const [courtMapsLink, setCourtMapsLink] = React.useState("");
 
   // slot form
   const [courtId, setCourtId] = React.useState("");
@@ -174,10 +176,17 @@ export default function Admin({ me }) {
     try {
       await apiFetch("/courts", {
         method: "POST",
-        body: { name: courtName, location: courtLocation || null },
+        body: {
+          name: courtName,
+          location: courtLocation,
+          description: courtDescription,
+          maps_link: courtMapsLink,
+        },
       });
       setCourtName("");
       setCourtLocation("");
+      setCourtDescription("");
+      setCourtMapsLink("");
       await loadCourts();
       alert("Court created");
     } catch (e) {
@@ -203,13 +212,26 @@ export default function Admin({ me }) {
   }
 
   if (!me) return <div>Please login first.</div>;
-  if (!isStaff) return <div>Admin/Staff only.</div>;
+  if (!isStaff) {
+    return (
+      <div className="section-card admin-shell">
+        <h2>Admin Dashboard</h2>
+        <p className="subtle-text">Staff access only.</p>
+        <a className="btn btn-primary" href="/admin-login">
+          Go to admin login
+        </a>
+      </div>
+    );
+  }
 
   return (
-    <div className="stack">
-      <div className="stack-tight">
-        <h2>Admin</h2>
-        <p className="subtle-text">Manage courts, slots, and customer bookings.</p>
+    <div className="stack admin-shell">
+      <div className="admin-banner">
+        <div>
+          <h2>Admin Dashboard</h2>
+          <p className="subtle-text">Manage courts, slots, and customer bookings.</p>
+        </div>
+        <span className="pill pill-muted">Staff</span>
       </div>
 
       <section className="section-card stack">
@@ -221,11 +243,31 @@ export default function Admin({ me }) {
             onChange={(e) => setCourtName(e.target.value)}
           />
           <input
-            placeholder="Location (optional)"
+            placeholder="Location"
             value={courtLocation}
             onChange={(e) => setCourtLocation(e.target.value)}
           />
-          <button className="btn btn-primary" onClick={createCourt} disabled={!courtName.trim()}>
+          <textarea
+            placeholder="Description"
+            value={courtDescription}
+            onChange={(e) => setCourtDescription(e.target.value)}
+            rows={3}
+          />
+          <input
+            placeholder="Google Maps link"
+            value={courtMapsLink}
+            onChange={(e) => setCourtMapsLink(e.target.value)}
+          />
+          <button
+            className="btn btn-primary"
+            onClick={createCourt}
+            disabled={
+              !courtName.trim() ||
+              !courtLocation.trim() ||
+              !courtDescription.trim() ||
+              !courtMapsLink.trim()
+            }
+          >
             Create court
           </button>
         </div>
@@ -337,11 +379,18 @@ export default function Admin({ me }) {
                 </div>
               )}
 
-              {b.user && (
-                <div className="meta">
-                  User: {b.user.email || b.user.id}
+              <div className="stack-tight">
+                <div>
+                  Player:{" "}
+                  <b>{b.user_full_name || b.user?.full_name || "Not provided"}</b>
                 </div>
-              )}
+                <div className="meta">
+                  Phone: {b.user_phone_number || b.user?.phone_number || "Not provided"}
+                </div>
+                <div className="meta">
+                  Email: {b.user?.email || "Not provided"}
+                </div>
+              </div>
 
               {b.slot && (
                 <div className="stack-tight">
