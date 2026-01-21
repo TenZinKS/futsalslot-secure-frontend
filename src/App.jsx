@@ -8,6 +8,7 @@ import Register from "./pages/Register";
 import Slots from "./pages/Slots";
 import MyBookings from "./pages/MyBookings";
 import Admin from "./pages/Admin";
+import ChangePassword from "./pages/ChangePassword";
 
 import RequireAuth from "./components/RequireAuth";
 import Notify from "./components/Notify";
@@ -89,7 +90,10 @@ export default function App() {
               <Link className="btn btn-primary" to="/register">Register</Link>
             </>
           ) : (
-            <button className="btn btn-ghost" onClick={logout}>Logout</button>
+            <>
+              <Link className="btn btn-ghost" to="/change-password">Change password</Link>
+              <button className="btn btn-ghost" onClick={logout}>Logout</button>
+            </>
           )}
         </div>
       </header>
@@ -139,6 +143,15 @@ export default function App() {
                 showError={showError}
                 showSuccess={showSuccess}
               />
+            }
+          />
+
+          <Route
+            path="/change-password"
+            element={
+              <RequireAuth me={me}>
+                <ChangePassword showError={showError} showSuccess={showSuccess} />
+              </RequireAuth>
             }
           />
 
