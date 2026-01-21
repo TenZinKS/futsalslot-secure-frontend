@@ -1,5 +1,5 @@
 import React from "react";
-import { Link, Routes, Route, useNavigate } from "react-router-dom";
+import { Link, Routes, Route, useNavigate, useLocation } from "react-router-dom";
 import { apiFetch } from "./api";
 
 import Home from "./pages/Home";
@@ -9,9 +9,11 @@ import Slots from "./pages/Slots";
 import MyBookings from "./pages/MyBookings";
 import Admin from "./pages/Admin";
 import ChangePassword from "./pages/ChangePassword";
+import Profile from "./pages/Profile";
 
 import RequireAuth from "./components/RequireAuth";
 import Notify from "./components/Notify";
+import Logo from "./assets/futsalslot-logo.png";
 
 function Placeholder({ title }) {
   return (
@@ -25,7 +27,17 @@ function Placeholder({ title }) {
 export default function App() {
   const [me, setMe] = React.useState(null);
   const [notice, setNotice] = React.useState(null);
+  const [profileOpen, setProfileOpen] = React.useState(false);
   const nav = useNavigate();
+  const location = useLocation();
+
+  function maskEmail(value) {
+    if (!value || !value.includes("@")) return "";
+    const [name, domain] = value.split("@");
+    if (!name) return "";
+    const visible = name.length > 2 ? `${name[0]}***${name[name.length - 1]}` : `${name[0]}*`;
+    return `${visible}@${domain}`;
+  }
 
   function showError(message) {
     setNotice({ type: "error", message });
@@ -52,6 +64,10 @@ export default function App() {
     loadMe();
   }, []);
 
+  React.useEffect(() => {
+    setProfileOpen(false);
+  }, [location.pathname]);
+
   async function logout() {
     try {
       await apiFetch("/auth/logout", { method: "POST" });
@@ -69,7 +85,7 @@ export default function App() {
 
       <header className="topbar">
         <div className="brand">
-          <div className="brand-mark" aria-hidden="true" />
+          <img className="brand-logo" src={Logo} alt="FutsalSlot logo" />
           <div>
             <div style={{ fontWeight: 700 }}>FutsalSlot</div>
             <div className="meta">Book courts with confidence</div>
@@ -79,8 +95,6 @@ export default function App() {
         <nav className="nav-links">
           <Link className="nav-link" to="/">Home</Link>
           <Link className="nav-link" to="/slots">Slots</Link>
-          <Link className="nav-link" to="/bookings">My bookings</Link>
-          <Link className="nav-link" to="/admin">Admin</Link>
         </nav>
 
         <div className="nav-actions">
@@ -90,19 +104,40 @@ export default function App() {
               <Link className="btn btn-primary" to="/register">Register</Link>
             </>
           ) : (
-            <>
-              <Link className="btn btn-ghost" to="/change-password">Change password</Link>
-              <button className="btn btn-ghost" onClick={logout}>Logout</button>
-            </>
+            <div className="profile-menu">
+              <button
+                className="profile-trigger"
+                onClick={() => setProfileOpen((open) => !open)}
+                aria-haspopup="menu"
+                aria-expanded={profileOpen}
+                type="button"
+              >
+                <span className="profile-dot" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                    <path
+                      d="M12 12a4 4 0 1 0-4-4 4 4 0 0 0 4 4zm0 2c-4.2 0-7 2.1-7 5v1h14v-1c0-2.9-2.8-5-7-5z"
+                      fill="currentColor"
+                    />
+                  </svg>
+                </span>
+                <span className="profile-label">Profile</span>
+              </button>
+              {profileOpen && (
+                <div className="profile-dropdown" role="menu">
+                  <div className="profile-summary">
+                    <div className="profile-name">Signed in</div>
+                    <div className="profile-meta">{maskEmail(me.email) || "Account"}</div>
+                  </div>
+                  <Link className="profile-item" to="/profile">Profile</Link>
+                  <Link className="profile-item" to="/bookings">My bookings</Link>
+                  <Link className="profile-item" to="/change-password">Change password</Link>
+                  <button className="profile-item danger" onClick={logout} type="button">Logout</button>
+                </div>
+              )}
+            </div>
           )}
         </div>
       </header>
-
-      {me && (
-        <div className="status-card">
-          Logged in as <b>{me.email}</b> — Roles: <b>{(me.roles || []).join(", ")}</b>
-        </div>
-      )}
 
       <main className="page">
         <Routes>
@@ -143,6 +178,15 @@ export default function App() {
                 showError={showError}
                 showSuccess={showSuccess}
               />
+            }
+          />
+
+          <Route
+            path="/profile"
+            element={
+              <RequireAuth me={me}>
+                <Profile me={me} showError={showError} showSuccess={showSuccess} />
+              </RequireAuth>
             }
           />
 
