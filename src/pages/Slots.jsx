@@ -1,6 +1,7 @@
 import React from "react";
-import { useSearchParams } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { apiFetch } from "../api";
+import { formatDate, formatTime } from "../utils/date";
 
 function todayISO() {
   const d = new Date();
@@ -10,7 +11,7 @@ function todayISO() {
   return `${yyyy}-${mm}-${dd}`;
 }
 
-export default function Slots() {
+export default function Slots({ me }) {
   const [searchParams, setSearchParams] = useSearchParams();
   const [courts, setCourts] = React.useState([]);
   const [courtId, setCourtId] = React.useState(searchParams.get("court_id") || "");
@@ -18,22 +19,35 @@ export default function Slots() {
   const [slots, setSlots] = React.useState([]);
   const [loading, setLoading] = React.useState(false);
   const [payingSlotId, setPayingSlotId] = React.useState(null);
+  const nav = useNavigate();
+  const isStaffAccount = me?.roles?.some((role) =>
+    ["ADMIN", "SUPER_ADMIN"].includes(role)
+  );
 
   async function bookAndPay(slot_id) {
+    if (!me) {
+      nav("/login", { state: { from: "/slots" } });
+      return;
+    }
+    if (isStaffAccount) {
+      alert("Booking is only available for player accounts.");
+      return;
+    }
     setPayingSlotId(slot_id);
     try {
-        // 1) create booking (PENDING_PAYMENT)
-        const booking = await apiFetch("/bookings", { method: "POST", body: { slot_id } });
-
-        // 2) start stripe checkout (returns checkout_url)
+        // start stripe checkout (returns checkout_url)
         const pay = await apiFetch("/payments/start", {
-        method: "POST",
-        body: { booking_id: booking.id },
+          method: "POST",
+          body: { slot_id },
         });
 
-        // 3) redirect to Stripe
+        // redirect to Stripe
         window.location.href = pay.checkout_url;
     } catch (e) {
+        if (e.status === 401) {
+          nav("/login", { state: { from: "/slots" } });
+          return;
+        }
         alert(e.message);
     } finally {
         setPayingSlotId(null);
@@ -41,8 +55,13 @@ export default function Slots() {
     }
 
   async function loadCourts() {
-    const data = await apiFetch("/courts");
-    setCourts(data);
+    const data = await apiFetch(me ? "/courts" : "/public/courts");
+    const normalized = Array.isArray(data)
+      ? data
+      : Array.isArray(data?.courts)
+        ? data.courts
+        : [];
+    setCourts(normalized);
   }
 
   async function loadSlots() {
@@ -52,7 +71,8 @@ export default function Slots() {
       if (courtId) qs.set("court_id", courtId);
       if (date) qs.set("date", date);
 
-      const data = await apiFetch(`/slots?${qs.toString()}`);
+      const base = me ? "/slots" : "/public/slots";
+      const data = await apiFetch(`${base}?${qs.toString()}`);
       setSlots(data);
     } finally {
       setLoading(false);
@@ -61,12 +81,12 @@ export default function Slots() {
 
   React.useEffect(() => {
     loadCourts().catch((e) => alert(e.message));
-  }, []);
+  }, [me]);
 
   React.useEffect(() => {
     loadSlots().catch((e) => alert(e.message));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [courtId, date]);
+  }, [courtId, date, me]);
 
   React.useEffect(() => {
     const param = searchParams.get("court_id") || "";
@@ -87,6 +107,13 @@ export default function Slots() {
         <div className="stack-tight">
           <h2>Slots</h2>
           <p className="subtle-text">Filter by court and date to find availability.</p>
+          {!me && (
+            <p className="meta">Login is required only when you book a slot.</p>
+          )}
+          {isStaffAccount && (
+            <p className="meta">Admin accounts cannot book slots.</p>
+          )}
+          <p className="meta">Stripe checkout is available for payments.</p>
         </div>
       </div>
 
@@ -133,17 +160,6 @@ export default function Slots() {
       <div className="grid-list">
         {slots.map((s) => (
           <div key={s.id} className="list-item row slot-item">
-            <div className="slot-media">
-              {(() => {
-                const court = courts.find((c) => c.id === s.court_id);
-                const image = court?.image_urls?.[0];
-                return image ? (
-                  <img className="slot-thumb" src={image} alt={court.name || "Court"} />
-                ) : (
-                  <div className="slot-thumb slot-thumb-empty" />
-                );
-              })()}
-            </div>
             <div className="stack-tight slot-meta">
               {(() => {
                 const court = courts.find((c) => c.id === s.court_id);
@@ -151,10 +167,10 @@ export default function Slots() {
                 return (
                   <>
                     <div style={{ fontWeight: 700 }}>
-                      {court?.name || `Court ${s.court_id}`}
+                      Court name: {court?.name || `Court ${s.court_id}`}
                     </div>
-                    {court?.location && <div className="meta">{court.location}</div>}
-                    {court?.description && <div className="meta">{court.description}</div>}
+                    {court?.location && <div className="meta">Location: {court.location}</div>}
+                    {court?.description && <div className="meta">Details: {court.description}</div>}
                     {mapsLink && (
                       <a className="slot-link" href={mapsLink} target="_blank" rel="noreferrer">
                         View on Google Maps
@@ -164,7 +180,10 @@ export default function Slots() {
                 );
               })()}
               <div className="meta">
-                {s.start_time} → {s.end_time}
+                Date: {formatDate(s.start_time)}
+              </div>
+              <div className="meta">
+                Time: {formatTime(s.start_time)} → {formatTime(s.end_time)}
               </div>
               <div className="meta">Price: {s.price} NPR</div>
               <div>
@@ -174,14 +193,30 @@ export default function Slots() {
               </div>
             </div>
 
-            <button
-              className="btn btn-primary"
-              disabled={!s.available || payingSlotId === s.id}
-              onClick={() => bookAndPay(s.id)}
-              title={!s.available ? "Already booked" : "Book and pay via Stripe"}
-            >
-              {payingSlotId === s.id ? "Redirecting..." : "Book & Pay"}
-            </button>
+            <div className="row">
+              <button
+                className="btn btn-primary"
+                disabled={!s.available || payingSlotId === s.id || isStaffAccount}
+                onClick={() => bookAndPay(s.id)}
+                title={
+                  !s.available
+                    ? "Already booked"
+                    : isStaffAccount
+                      ? "Admin accounts cannot book"
+                      : me
+                        ? "Book and pay via Stripe"
+                        : "Login to book"
+                }
+              >
+                {payingSlotId === s.id
+                  ? "Redirecting..."
+                  : isStaffAccount
+                    ? "Admin account"
+                    : me
+                      ? "Book & Pay"
+                      : "Login to book"}
+              </button>
+            </div>
           </div>
         ))}
 

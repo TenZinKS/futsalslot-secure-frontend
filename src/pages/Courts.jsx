@@ -2,70 +2,43 @@ import React from "react";
 import { Link } from "react-router-dom";
 import { apiFetch } from "../api";
 
-export default function Courts() {
+export default function Courts({ me }) {
   const [courts, setCourts] = React.useState([]);
   const [loading, setLoading] = React.useState(false);
-  const [userLat, setUserLat] = React.useState("");
-  const [userLng, setUserLng] = React.useState("");
-  const [maxDistanceKm, setMaxDistanceKm] = React.useState("");
+  const [error, setError] = React.useState("");
   const [locationQuery, setLocationQuery] = React.useState("");
-  const [locating, setLocating] = React.useState(false);
-  const [locationError, setLocationError] = React.useState("");
 
   async function loadCourts() {
     setLoading(true);
+    setError("");
     try {
-      const qs = new URLSearchParams();
-      if (userLat && userLng) {
-        qs.set("user_lat", userLat);
-        qs.set("user_lng", userLng);
-      }
-      if (maxDistanceKm) qs.set("max_distance_km", maxDistanceKm);
-      const url = qs.toString() ? `/courts?${qs.toString()}` : "/courts";
-      const data = await apiFetch(url);
-      setCourts(Array.isArray(data) ? data : []);
+      const base = me ? "/courts" : "/public/courts";
+      const data = await apiFetch(base);
+      const normalized = Array.isArray(data)
+        ? data
+        : Array.isArray(data?.courts)
+          ? data.courts
+          : [];
+      setCourts(normalized);
+    } catch (e) {
+      setCourts([]);
+      setError(e.message || "Unable to load courts.");
     } finally {
       setLoading(false);
     }
   }
 
-  function useMyLocation() {
-    if (!navigator.geolocation) {
-      setLocationError("Geolocation is not supported by this browser.");
-      return;
-    }
-    setLocating(true);
-    setLocationError("");
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        setUserLat(pos.coords.latitude.toFixed(6));
-        setUserLng(pos.coords.longitude.toFixed(6));
-        setLocating(false);
-      },
-      () => {
-        setLocationError("Unable to access your location.");
-        setLocating(false);
-      }
-    );
-  }
-
-  function formatDistance(value) {
-    if (value === null || value === undefined) return null;
-    const km = Number(value);
-    if (Number.isNaN(km)) return null;
-    return `${km.toFixed(1)} km`;
-  }
-
   React.useEffect(() => {
-    loadCourts().catch(() => setCourts([]));
-  }, []);
+    loadCourts();
+  }, [me]);
+
 
   return (
     <div className="stack">
       <div className="row" style={{ justifyContent: "space-between" }}>
         <div className="stack-tight">
           <h2>Courts</h2>
-          <p className="subtle-text">Browse all futsal courts and view locations.</p>
+          <p className="subtle-text">Browse all courts and view locations.</p>
         </div>
         <button className="btn btn-ghost" onClick={loadCourts} disabled={loading}>
           {loading ? "Refreshing..." : "Refresh"}
@@ -75,37 +48,17 @@ export default function Courts() {
       <div className="toolbar">
         <div className="field">
           <label>
-            Location
+            Search courts
             <input
               value={locationQuery}
               onChange={(e) => setLocationQuery(e.target.value)}
-              placeholder="Search by area or name"
+              placeholder="Search by court name or area"
             />
           </label>
-        </div>
-        <div className="field">
-          <label>
-            Max distance (km)
-            <input
-              type="number"
-              min="1"
-              value={maxDistanceKm}
-              onChange={(e) => setMaxDistanceKm(e.target.value)}
-              placeholder="e.g. 5"
-            />
-          </label>
-        </div>
-        <div className="row">
-          <button className="btn btn-ghost" onClick={useMyLocation} disabled={locating}>
-            {locating ? "Locating..." : "Use my location"}
-          </button>
-          <button className="btn btn-primary" onClick={loadCourts} disabled={loading}>
-            Apply filter
-          </button>
         </div>
       </div>
 
-      {locationError && <div className="subtle-text">{locationError}</div>}
+      {error && <div className="subtle-text">{error}</div>}
 
       <div className="grid-list">
         {courts
@@ -121,23 +74,22 @@ export default function Courts() {
           .map((c) => (
           <div key={c.id} className="list-item stack">
             <div className="row" style={{ justifyContent: "space-between" }}>
-              <div style={{ fontWeight: 700 }}>{c.name}</div>
+              <div style={{ fontWeight: 700 }}>
+                Court name: {c.name || `Court ${c.id}`}
+              </div>
               <div className="row">
                 <Link className="btn btn-ghost" to={`/slots?court_id=${c.id}`}>
                   View slots
                 </Link>
                 {c.maps_link && (
                   <a className="slot-link" href={c.maps_link} target="_blank" rel="noreferrer">
-                    Google Maps
+                    Open in Google Maps
                   </a>
                 )}
               </div>
             </div>
-            {c.location && <div className="meta">{c.location}</div>}
-            {c.description && <div className="meta">{c.description}</div>}
-            {formatDistance(c.distance_km) && (
-              <div className="meta">Distance: {formatDistance(c.distance_km)}</div>
-            )}
+            {c.location && <div className="meta">Location: {c.location}</div>}
+            {c.description && <div className="meta">Details: {c.description}</div>}
           </div>
         ))}
 

@@ -6,7 +6,7 @@ export default function Home({ me }) {
     <div className="stack">
       <section className="hero">
         <span className="badge">Live availability + secure checkout</span>
-        <h1 className="page-title">Book futsal courts in minutes</h1>
+        <h1 className="page-title">Book courts in minutes</h1>
         <p className="subtle-text">
           FutsalSlot helps teams and venues coordinate instantly. View real-time slots,
           reserve a court, and get a confirmed booking without phone calls or spreadsheets.
@@ -80,7 +80,7 @@ export default function Home({ me }) {
       <section className="section-card">
         <h3 className="section-title">What is FutsalSlot?</h3>
         <p className="subtle-text">
-          A streamlined booking platform for futsal courts. Players can discover
+          A streamlined booking platform for courts. Players can discover
           available time slots, while venues keep schedules accurate and payments secure.
         </p>
       </section>

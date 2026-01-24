@@ -3,6 +3,8 @@ import { useNavigate, Link } from "react-router-dom";
 import { apiFetch } from "../api";
 
 export default function Register() {
+  const [fullName, setFullName] = React.useState("");
+  const [phoneNumber, setPhoneNumber] = React.useState("");
   const [email, setEmail] = React.useState("");
   const [password, setPassword] = React.useState("");
   const [loading, setLoading] = React.useState(false);
@@ -14,7 +16,12 @@ export default function Register() {
     try {
       await apiFetch("/auth/register", {
         method: "POST",
-        body: { email, password },
+        body: {
+          email,
+          password,
+          full_name: fullName.trim(),
+          phone_number: phoneNumber.trim(),
+        },
       });
       alert("Registered successfully. Now login.");
       nav("/login");
@@ -32,6 +39,32 @@ export default function Register() {
         <p className="subtle-text">Get started and lock in your next match.</p>
       </div>
       <form onSubmit={submit} className="stack">
+        <div className="field">
+          <label>
+            Full name
+            <input
+              value={fullName}
+              onChange={(e) => setFullName(e.target.value)}
+              placeholder="Your full name"
+              autoComplete="name"
+              required
+            />
+          </label>
+        </div>
+
+        <div className="field">
+          <label>
+            Phone number
+            <input
+              value={phoneNumber}
+              onChange={(e) => setPhoneNumber(e.target.value)}
+              placeholder="+977 9800000000"
+              autoComplete="tel"
+              required
+            />
+          </label>
+        </div>
+
         <div className="field">
           <label>
             Email

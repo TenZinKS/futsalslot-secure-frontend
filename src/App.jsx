@@ -11,6 +11,11 @@ import MyBookings from "./pages/MyBookings";
 import Admin from "./pages/Admin";
 import ChangePassword from "./pages/ChangePassword";
 import Profile from "./pages/Profile";
+import AdminRegister from "./pages/AdminRegister";
+import FutsalAdmin from "./pages/FutsalAdmin";
+import FutsalOnboarding from "./pages/FutsalOnboarding";
+import SuperAdmin from "./pages/SuperAdmin";
+import Support from "./pages/Support";
 
 import RequireAuth from "./components/RequireAuth";
 import Notify from "./components/Notify";
@@ -27,10 +32,18 @@ function Placeholder({ title }) {
 
 export default function App() {
   const [me, setMe] = React.useState(null);
+  const [loadingMe, setLoadingMe] = React.useState(true);
   const [notice, setNotice] = React.useState(null);
   const [profileOpen, setProfileOpen] = React.useState(false);
   const nav = useNavigate();
   const location = useLocation();
+  const isSuperAdmin = me?.roles?.includes("SUPER_ADMIN");
+  const isStaffAccount = me?.roles?.some((role) =>
+    ["ADMIN"].includes(role)
+  );
+  const isPublicNav = !isSuperAdmin && !isStaffAccount;
+  const isCourtAdminPage = ["/court-admin", "/futsal-admin"].includes(location.pathname);
+  const isVenueAdminPage = location.pathname === "/admin";
 
   function maskEmail(value) {
     if (!value || !value.includes("@")) return "";
@@ -53,11 +66,14 @@ export default function App() {
   }
 
   async function loadMe() {
+    setLoadingMe(true);
     try {
       const data = await apiFetch("/auth/me");
       setMe(data);
     } catch {
       setMe(null);
+    } finally {
+      setLoadingMe(false);
     }
   }
 
@@ -81,7 +97,9 @@ export default function App() {
   }
 
   return (
-    <div className="app-shell">
+    <div
+      className={`app-shell ${isSuperAdmin ? "superadmin-mode" : isStaffAccount ? "admin-mode" : ""}`}
+    >
       <Notify notice={notice} onClose={() => setNotice(null)} />
 
       <header className="topbar">
@@ -89,14 +107,35 @@ export default function App() {
           <img className="brand-logo" src={Logo} alt="FutsalSlot logo" />
           <div>
             <div style={{ fontWeight: 700 }}>FutsalSlot</div>
-            <div className="meta">Book courts with confidence</div>
+            <div className="meta">
+              {isSuperAdmin
+                ? "Super admin console"
+                : isStaffAccount
+                  ? "Venue admin workspace"
+                  : "Book courts with confidence"}
+            </div>
           </div>
         </div>
 
         <nav className="nav-links">
-          <Link className="nav-link" to="/">Home</Link>
-          <Link className="nav-link" to="/courts">Courts</Link>
-          <Link className="nav-link" to="/slots">Slots</Link>
+          {isPublicNav && (
+            <>
+              <Link className="nav-link" to="/">Home</Link>
+              <Link className="nav-link" to="/courts">Courts</Link>
+              <Link className="nav-link" to="/slots">Slots</Link>
+              <Link className="nav-link" to="/court-onboarding">List your court</Link>
+            </>
+          )}
+          {isStaffAccount && (
+            <>
+              <Link className="nav-link" to="/admin">Venue admin</Link>
+            </>
+          )}
+          {isSuperAdmin && (
+            <>
+              <Link className="nav-link" to="/superadmin">Super admin</Link>
+            </>
+          )}
         </nav>
 
         <div className="nav-actions">
@@ -130,8 +169,30 @@ export default function App() {
                     <div className="profile-name">Signed in</div>
                     <div className="profile-meta">{maskEmail(me.email) || "Account"}</div>
                   </div>
+                  {isSuperAdmin && !isCourtAdminPage && !isVenueAdminPage && (
+                    <Link className="profile-item" to="/superadmin">
+                      Super admin
+                    </Link>
+                  )}
+                  {isStaffAccount && !isSuperAdmin && !isCourtAdminPage && !isVenueAdminPage && (
+                    <Link className="profile-item" to="/admin">
+                      Venue admin
+                    </Link>
+                  )}
                   <Link className="profile-item" to="/profile">Profile</Link>
-                  <Link className="profile-item" to="/bookings">My bookings</Link>
+                  {!isSuperAdmin && (
+                    <Link className="profile-item" to="/support">
+                      Support
+                    </Link>
+                  )}
+                  {isStaffAccount && !isCourtAdminPage && !isVenueAdminPage && (
+                    <Link className="profile-item" to="/court-admin">
+                      Court admin
+                    </Link>
+                  )}
+                  {isPublicNav && (
+                    <Link className="profile-item" to="/bookings">My bookings</Link>
+                  )}
                   <Link className="profile-item" to="/change-password">Change password</Link>
                   <button className="profile-item danger" onClick={logout} type="button">Logout</button>
                 </div>
@@ -144,21 +205,22 @@ export default function App() {
       <main className="page">
         <Routes>
           <Route path="/" element={<Home me={me} />} />
-          <Route path="/courts" element={<Courts />} />
-
+          <Route path="/courts" element={<Courts me={me} />} />
           <Route
-            path="/slots"
-            element={
-              <RequireAuth me={me}>
-                <Slots />
-              </RequireAuth>
-            }
+            path="/court-onboarding"
+            element={<FutsalOnboarding showSuccess={showSuccess} />}
           />
+          <Route
+            path="/futsal-onboarding"
+            element={<FutsalOnboarding showSuccess={showSuccess} />}
+          />
+
+          <Route path="/slots" element={<Slots me={me} />} />
 
           <Route
             path="/bookings"
             element={
-              <RequireAuth me={me}>
+              <RequireAuth me={me} loading={loadingMe}>
                 <MyBookings />
               </RequireAuth>
             }
@@ -167,8 +229,16 @@ export default function App() {
           <Route
             path="/admin"
             element={
-              <RequireAuth me={me}>
+              <RequireAuth me={me} loading={loadingMe}>
                 <Admin me={me} />
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/superadmin"
+            element={
+              <RequireAuth me={me} loading={loadingMe}>
+                <SuperAdmin me={me} />
               </RequireAuth>
             }
           />
@@ -192,17 +262,53 @@ export default function App() {
                 showError={showError}
                 showSuccess={showSuccess}
                 title="Admin access"
-                subtitle="Sign in with a staff account to manage courts and bookings."
+                subtitle="Verified admin accounts only. Wait for approval before logging in."
                 variant="admin"
+                endpoint="/auth/admin/login"
+                defaultRedirect="/admin"
+                requireRoles={["ADMIN"]}
               />
             }
           />
 
           <Route
+            path="/superadmin-login"
+            element={
+              <Login
+                onAuthChange={loadMe}
+                showError={showError}
+                showSuccess={showSuccess}
+                title="Super admin access"
+                subtitle="Use your super admin account to verify courts and manage admins."
+                variant="admin"
+                endpoint="/auth/superadmin/login"
+                hideRegisterLink
+                defaultRedirect="/superadmin"
+                requireRoles={["SUPER_ADMIN"]}
+                secondaryLink={{
+                  text: "Staff admin?",
+                  to: "/admin-login",
+                  label: "Admin login",
+                }}
+              />
+            }
+          />
+
+          <Route path="/admin-register" element={<AdminRegister />} />
+
+          <Route
             path="/profile"
             element={
-              <RequireAuth me={me}>
+              <RequireAuth me={me} loading={loadingMe}>
                 <Profile me={me} showError={showError} showSuccess={showSuccess} />
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/support"
+            element={
+              <RequireAuth me={me} loading={loadingMe}>
+                <Support showError={showError} showSuccess={showSuccess} />
               </RequireAuth>
             }
           />
@@ -210,8 +316,25 @@ export default function App() {
           <Route
             path="/change-password"
             element={
-              <RequireAuth me={me}>
+              <RequireAuth me={me} loading={loadingMe}>
                 <ChangePassword showError={showError} showSuccess={showSuccess} />
+              </RequireAuth>
+            }
+          />
+
+          <Route
+            path="/court-admin"
+            element={
+              <RequireAuth me={me} loading={loadingMe}>
+                <FutsalAdmin />
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/futsal-admin"
+            element={
+              <RequireAuth me={me} loading={loadingMe}>
+                <FutsalAdmin />
               </RequireAuth>
             }
           />

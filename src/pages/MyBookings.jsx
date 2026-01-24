@@ -1,10 +1,12 @@
 import React from "react";
 import { apiFetch } from "../api";
+import { formatDateTime, formatDate, formatTime } from "../utils/date";
 
 export default function MyBookings() {
   const [rows, setRows] = React.useState([]);
   const [loading, setLoading] = React.useState(false);
   const [cancellingId, setCancellingId] = React.useState(null);
+  const [courtMap, setCourtMap] = React.useState({});
 
   async function load() {
     setLoading(true);
@@ -35,23 +37,27 @@ export default function MyBookings() {
     }
   }
 
-  async function cancelBooking(id) {
-    if (!confirm("Cancel this booking?")) return;
-
+  async function loadCourts() {
     try {
-        await apiFetch(`/bookings/${id}/cancel`, {
-        method: "POST",
-        body: { reason: "User cancelled from UI" },
-        });
-        await load(); // refresh list
-    } catch (e) {
-        alert(e.message);
+      const data = await apiFetch("/courts");
+      const list = Array.isArray(data)
+        ? data
+        : Array.isArray(data?.courts)
+          ? data.courts
+          : [];
+      const next = {};
+      list.forEach((court) => {
+        if (court?.id) next[court.id] = court;
+      });
+      setCourtMap(next);
+    } catch {
+      setCourtMap({});
     }
-    }
-
+  }
 
   React.useEffect(() => {
     load();
+    loadCourts();
   }, []);
 
   return (
@@ -67,51 +73,61 @@ export default function MyBookings() {
       </div>
 
       <div className="grid-list">
-        {rows.map((b) => (
-          <div key={b.id} className="list-item stack">
-            <div className="row" style={{ justifyContent: "space-between" }}>
-              <div>
-                <b>Booking #{b.id}</b>
-              </div>
-              <div className="row">
-                <span className={`pill ${b.status === "CANCELLED" ? "pill-cancelled" : ""}`}>
-                  {b.status}
-                </span>
-                {b.status !== "CANCELLED" && (
-                  <button
-                    onClick={() => cancelBooking(b.id)}
-                    disabled={cancellingId === b.id}
-                    title="Cancel booking"
-                    className="btn btn-danger"
-                  >
-                    {cancellingId === b.id ? "Cancelling..." : "Cancel"}
-                  </button>
-                )}
-              </div>
-            </div>
-
-            <div className="meta">
-              Created: {b.created_at}
-            </div>
-
-            {b.cancelled_at && (
-              <div className="meta">
-                Cancelled: {b.cancelled_at}
-              </div>
-            )}
-
-            {b.slot && (
-              <div className="stack-tight">
+        {rows.map((b) => {
+          const status = b.status || "UNKNOWN";
+          const statusClass =
+            status === "CONFIRMED"
+              ? "pill-success"
+              : status === "CANCELLED"
+                ? "pill-cancelled"
+                : "pill-muted";
+          return (
+            <div key={b.id} className="list-item stack booking-card">
+              <div className="row booking-header" style={{ justifyContent: "space-between" }}>
                 <div>
-                  Slot: <b>{b.slot.start_time}</b> → <b>{b.slot.end_time}</b>
+                  <div className="booking-title">Booking #{b.id}</div>
+                  <div className="meta">Created: {formatDateTime(b.created_at)}</div>
                 </div>
-                <div className="meta">
-                  Court ID: {b.slot.court_id} | Price: {b.slot.price} NPR
+                <div className="row booking-actions">
+                  <span className={`pill ${statusClass}`}>{status}</span>
+                  {status !== "CANCELLED" && (
+                    <button
+                      onClick={() => cancelBooking(b.id)}
+                      disabled={cancellingId === b.id}
+                      title="Cancel booking"
+                      className="btn btn-danger"
+                    >
+                      {cancellingId === b.id ? "Cancelling..." : "Cancel booking"}
+                    </button>
+                  )}
                 </div>
               </div>
-            )}
-          </div>
-        ))}
+
+              {b.cancelled_at && (
+                <div className="meta">
+                  Cancelled: {formatDateTime(b.cancelled_at)}
+                </div>
+              )}
+
+              {b.slot && (
+                <div className="stack-tight booking-details">
+                  <div className="meta">
+                    Court: {b.court?.name || b.slot?.court?.name || b.slot?.court_name || b.court_name || courtMap[b.slot.court_id]?.name || "Unknown"}
+                  </div>
+                  <div className="meta">
+                    Date: {formatDate(b.slot.start_time)}
+                  </div>
+                  <div className="meta">
+                    Time: {formatTime(b.slot.start_time)} → {formatTime(b.slot.end_time)}
+                  </div>
+                  <div className="meta">
+                    Price: {b.slot.price} NPR
+                  </div>
+                </div>
+              )}
+            </div>
+          );
+        })}
 
         {!loading && rows.length === 0 && (
           <div className="subtle-text">No bookings yet.</div>
