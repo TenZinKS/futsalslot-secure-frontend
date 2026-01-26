@@ -1,5 +1,6 @@
 import React from "react";
 import { Link } from "react-router-dom";
+import PasswordStrengthBar from "react-password-strength-bar";
 import { apiFetch } from "../api";
 
 export default function AdminRegister() {
@@ -129,6 +130,7 @@ export default function AdminRegister() {
               minLength={12}
               required
             />
+            <PasswordStrengthBar password={password} className="password-strength" />
           </label>
         </div>
 

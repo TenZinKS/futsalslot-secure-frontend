@@ -691,6 +691,22 @@
   color: var(--text);
 }
 
+.password-strength .react-password-strength-bar__bar {
+  background: rgba(245, 245, 240, 0.12);
+  height: 6px;
+  border-radius: 999px;
+}
+
+.password-strength .react-password-strength-bar__bar-inner {
+  border-radius: 999px;
+}
+
+.password-strength .react-password-strength-bar__label {
+  margin-top: 6px;
+  font-size: 12px;
+  color: var(--muted);
+}
+
 .hero {
   display: grid;
   gap: 16px;
