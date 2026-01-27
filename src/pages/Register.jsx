@@ -8,8 +8,28 @@ export default function Register() {
   const [phoneNumber, setPhoneNumber] = React.useState("");
   const [email, setEmail] = React.useState("");
   const [password, setPassword] = React.useState("");
+  const [pwPolicy, setPwPolicy] = React.useState(null);
   const [loading, setLoading] = React.useState(false);
   const nav = useNavigate();
+
+  React.useEffect(() => {
+    if (!password) {
+      setPwPolicy(null);
+      return;
+    }
+    const handle = setTimeout(async () => {
+      try {
+        const data = await apiFetch("/auth/password_strength", {
+          method: "POST",
+          body: { password },
+        });
+        setPwPolicy(data);
+      } catch {
+        // Ignore policy errors to avoid blocking typing.
+      }
+    }, 300);
+    return () => clearTimeout(handle);
+  }, [password]);
 
   async function submit(e) {
     e.preventDefault();
@@ -92,6 +112,16 @@ export default function Register() {
             />
             <PasswordStrengthBar password={password} className="password-strength" />
           </label>
+          {pwPolicy && pwPolicy.valid === false && Array.isArray(pwPolicy.feedback) && (
+            <div className="password-policy">
+              <div className="meta">Password requirements:</div>
+              <ul>
+                {pwPolicy.feedback.map((msg) => (
+                  <li key={msg}>{msg}</li>
+                ))}
+              </ul>
+            </div>
+          )}
         </div>
 
         <button className="btn btn-primary" disabled={loading} type="submit">
