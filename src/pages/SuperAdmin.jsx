@@ -70,18 +70,77 @@ export default function SuperAdmin({ me }) {
   const [supportMessages, setSupportMessages] = React.useState([]);
   const [adminDetails, setAdminDetails] = React.useState({});
   const [loadingCourtsFor, setLoadingCourtsFor] = React.useState({});
+  const [auditLogs, setAuditLogs] = React.useState([]);
+  const [auditAction, setAuditAction] = React.useState("");
+  const [auditUserId, setAuditUserId] = React.useState("");
+  const [auditLimit, setAuditLimit] = React.useState(200);
 
   const [loadingRequests, setLoadingRequests] = React.useState(false);
   const [loadingPlayers, setLoadingPlayers] = React.useState(false);
   const [loadingAdmins, setLoadingAdmins] = React.useState(false);
   const [loadingBlocked, setLoadingBlocked] = React.useState(false);
   const [loadingSupport, setLoadingSupport] = React.useState(false);
+  const [loadingAudit, setLoadingAudit] = React.useState(false);
 
   const [requestError, setRequestError] = React.useState("");
   const [playersError, setPlayersError] = React.useState("");
   const [adminsError, setAdminsError] = React.useState("");
   const [blockedError, setBlockedError] = React.useState("");
   const [supportError, setSupportError] = React.useState("");
+  const [auditError, setAuditError] = React.useState("");
+
+  function formatMetadata(value) {
+    if (!value) return "";
+    if (typeof value === "string") return value;
+    try {
+      return JSON.stringify(value, null, 2);
+    } catch {
+      return String(value);
+    }
+  }
+
+  function exportAuditCsv() {
+    if (!auditLogs.length) {
+      alert("No audit logs to export.");
+      return;
+    }
+    const headers = [
+      "id",
+      "created_at",
+      "user_id",
+      "action",
+      "entity",
+      "entity_id",
+      "ip",
+      "user_agent",
+      "metadata",
+    ];
+    const escapeCell = (value) => {
+      if (value == null) return "";
+      const raw =
+        typeof value === "string" ? value : JSON.stringify(value, null, 0);
+      const escaped = raw.replace(/\"/g, "\"\"");
+      return `"${escaped}"`;
+    };
+    const rows = auditLogs.map((log) =>
+      headers
+        .map((key) => {
+          if (key === "metadata") return escapeCell(log.metadata);
+          return escapeCell(log[key]);
+        })
+        .join(",")
+    );
+    const csv = [headers.join(","), ...rows].join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `audit-logs-${new Date().toISOString().slice(0, 10)}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+  }
 
   async function loadRequests() {
     setLoadingRequests(true);
@@ -175,6 +234,28 @@ export default function SuperAdmin({ me }) {
       setSupportMessages([]);
     } finally {
       setLoadingSupport(false);
+    }
+  }
+
+  async function loadAuditLogs() {
+    setLoadingAudit(true);
+    setAuditError("");
+    try {
+      const params = new URLSearchParams();
+      const limitValue = Number(auditLimit) || 200;
+      params.set("limit", String(Math.max(1, Math.min(limitValue, 500))));
+      if (auditAction.trim()) params.set("action", auditAction.trim());
+      const userIdValue = Number(auditUserId);
+      if (auditUserId !== "" && !Number.isNaN(userIdValue)) {
+        params.set("user_id", String(userIdValue));
+      }
+      const data = await apiFetch(`/super-admin/audit-logs?${params.toString()}`);
+      setAuditLogs(Array.isArray(data) ? data : []);
+    } catch (e) {
+      setAuditError(e.message || "Unable to load audit logs.");
+      setAuditLogs([]);
+    } finally {
+      setLoadingAudit(false);
     }
   }
 
@@ -322,6 +403,7 @@ export default function SuperAdmin({ me }) {
     loadAdmins();
     loadBlockedEmails();
     loadSupportMessages();
+    loadAuditLogs();
   }, []);
 
   if (!me) return <div>Please login first.</div>;
@@ -752,6 +834,90 @@ export default function SuperAdmin({ me }) {
 
           {!loadingSupport && supportMessages.length === 0 && (
             <div className="subtle-text">No support messages yet.</div>
+          )}
+        </div>
+      </section>
+
+      <section className="section-card stack">
+        <div className="row" style={{ justifyContent: "space-between" }}>
+          <div className="stack-tight">
+            <h3 className="section-title">Audit logs</h3>
+            <p className="subtle-text">Recent actions across the platform.</p>
+          </div>
+          <div className="row">
+            <button className="btn btn-ghost" onClick={exportAuditCsv} disabled={!auditLogs.length}>
+              Export CSV
+            </button>
+            <button className="btn btn-ghost" onClick={loadAuditLogs} disabled={loadingAudit}>
+              {loadingAudit ? "Refreshing..." : "Refresh"}
+            </button>
+          </div>
+        </div>
+
+        <div className="grid-list" style={{ alignItems: "end" }}>
+          <div className="field">
+            <label>
+              Action
+              <input
+                value={auditAction}
+                onChange={(e) => setAuditAction(e.target.value)}
+                placeholder="BOOKING_CANCELLED"
+              />
+            </label>
+          </div>
+          <div className="field">
+            <label>
+              User ID
+              <input
+                value={auditUserId}
+                onChange={(e) => setAuditUserId(e.target.value)}
+                placeholder="123"
+                inputMode="numeric"
+              />
+            </label>
+          </div>
+          <div className="field">
+            <label>
+              Limit
+              <input
+                value={auditLimit}
+                onChange={(e) => setAuditLimit(e.target.value)}
+                placeholder="200"
+                inputMode="numeric"
+              />
+            </label>
+          </div>
+          <button className="btn btn-primary" onClick={loadAuditLogs} disabled={loadingAudit}>
+            Apply filters
+          </button>
+        </div>
+
+        {auditError && <div className="subtle-text">{auditError}</div>}
+
+        <div className="grid-list">
+          {auditLogs.map((log) => (
+            <div key={log.id || `${log.action}-${log.created_at}`} className="list-item stack">
+              <div className="row" style={{ justifyContent: "space-between" }}>
+                <div style={{ fontWeight: 700 }}>{log.action || "Action"}</div>
+                <span className="pill pill-muted">{log.entity || "Entity"}</span>
+              </div>
+              {log.created_at && (
+                <div className="meta">Time: {formatDateTime(log.created_at)}</div>
+              )}
+              {log.user_id != null && <div className="meta">User ID: {log.user_id}</div>}
+              {log.entity_id != null && <div className="meta">Entity ID: {log.entity_id}</div>}
+              {log.ip && <div className="meta">IP: {log.ip}</div>}
+              {log.user_agent && <div className="meta">User Agent: {log.user_agent}</div>}
+              {log.metadata && (
+                <pre className="meta" style={{ whiteSpace: "pre-wrap" }}>
+                  {formatMetadata(log.metadata)}
+                </pre>
+              )}
+            </div>
+          ))}
+
+          {!loadingAudit && auditLogs.length === 0 && (
+            <div className="subtle-text">No audit logs found.</div>
           )}
         </div>
       </section>
