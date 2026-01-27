@@ -113,7 +113,6 @@ export default function Slots({ me }) {
           {isStaffAccount && (
             <p className="meta">Admin accounts cannot book slots.</p>
           )}
-          <p className="meta">Stripe checkout is available for payments.</p>
         </div>
       </div>
 
