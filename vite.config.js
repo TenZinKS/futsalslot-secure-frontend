@@ -10,6 +10,14 @@ export default defineConfig({
       key: fs.readFileSync("certs/localhost-key.pem"),
       cert: fs.readFileSync("certs/localhost.pem"),
     },
+    proxy: {
+      "/api": {
+        target: "http://localhost:5002",
+        changeOrigin: true,
+        secure: false,
+        rewrite: (path) => path.replace(/^\/api/, ""),
+      },
+    },
   },
   build: {
     sourcemap: false,
