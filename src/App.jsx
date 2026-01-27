@@ -103,7 +103,7 @@ export default function App() {
       <Notify notice={notice} onClose={() => setNotice(null)} />
 
       <header className="topbar">
-        <div className="brand">
+        <Link className="brand" to="/" aria-label="Go to home">
           <img className="brand-logo" src={Logo} alt="FutsalSlot logo" />
           <div>
             <div style={{ fontWeight: 700 }}>FutsalSlot</div>
@@ -115,7 +115,7 @@ export default function App() {
                   : "Book courts with confidence"}
             </div>
           </div>
-        </div>
+        </Link>
 
         <nav className="nav-links">
           {isPublicNav && (
