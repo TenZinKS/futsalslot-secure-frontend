@@ -10,8 +10,6 @@ export default function FutsalOnboarding({ showSuccess }) {
 
   return (
     <div className="stack">
-      <div className="admin-banner" />
-
       <section className="section-card stack">
         <h3 className="section-title">How it works</h3>
         <div className="timeline">
@@ -83,23 +81,6 @@ export default function FutsalOnboarding({ showSuccess }) {
         </div>
       </section>
 
-      <section className="section-card stack">
-        <h3 className="section-title">Verification status</h3>
-        <div className="grid-list">
-          <div className="list-item stack">
-            <div className="row">
-              <span className="pill pill-muted">Pending verification</span>
-              <span className="meta">Submitted and waiting for approval.</span>
-            </div>
-          </div>
-          <div className="list-item stack">
-            <div className="row">
-              <span className="pill pill-success">Verified</span>
-              <span className="meta">Approved and ready to manage your court.</span>
-            </div>
-          </div>
-        </div>
-      </section>
     </div>
   );
 }
