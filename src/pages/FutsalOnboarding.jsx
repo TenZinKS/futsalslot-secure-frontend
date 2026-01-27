@@ -10,15 +10,7 @@ export default function FutsalOnboarding({ showSuccess }) {
 
   return (
     <div className="stack">
-      <div className="admin-banner">
-        <div>
-          <h2>Court onboarding</h2>
-          <p className="subtle-text">
-            Submit your details and get verified before managing your own court.
-          </p>
-        </div>
-        <span className="pill pill-muted">Super admin verification</span>
-      </div>
+      <div className="admin-banner" />
 
       <section className="section-card stack">
         <h3 className="section-title">How it works</h3>
